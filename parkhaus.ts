@@ -1,9 +1,7 @@
-// Verwenden der "neuen" Modul laden Funktion: import
-import { convertProcessSignalToExitCode } from "node:util";
+// Verwenden der "neuen" Moduleladen Funktion "import"
 import promptSync from "prompt-sync";
-const myprompt = promptSync({ sigint: true });
+const myprompt = promptSync({ sigint: true }); // CTRL-C/CTRL-D aktivieren
 
-// commands: parkin, parkout, pstat, money, exit
 interface car {
     id: number,
     stime: string,
@@ -16,7 +14,7 @@ interface phaus {
     chash: number
 }
 
-// init parkhaus
+// parkhaus initialisieren 25 Plätze
 let phaus: phaus = {
     maxccount: 25,
     phclist: [],
@@ -24,20 +22,31 @@ let phaus: phaus = {
     chash: 0
 }
 
-let allcommands = "parkin, parkout, pstat, money, exit, exit22, apark, ifexit";
+let carin, carout: car
+let noexit = true
 let speedtime = 7
 let gesamteinnahmen = 0
+let allcommands = "pein, paus, apark, pstat, money, exit, exit22, ifexit, speed";
 // Preise pro Stunde von 1. bis 10. Stunde
 let plist = [1.0, 0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1]
+let fullcheck = 0.8 // Füllstand für auto ausparken
+let autoTimeOut = 4 // nur ab autoTimeOut Std, autos automatisch ausparken
+let maxCarOut = 10 // maximal % anzahl autos ausparken
 
 console.log("Parkhaus Superparking wird geöffnet: es ist 8:00 Uhr")
+// wir setzen einen Timer der reale Sekunden als Minuten zählt,
+//   wobei ein speedtime Multiplikator die Zeit schneller ablaufen lassen kann
+//   was auch bei der Programmausführung angepasst werden kann
 let startParkHouseTime800 = Math.floor(Date.now() / 1000)
 
-function phtimesec(): number {
+function phTimeSec(): number {
+    // timer zählt von 0 (sec=min) ab Programmstart
     let currenttime = Math.floor(Date.now() / 1000)
     return (currenttime - startParkHouseTime800) * speedtime
 }
-function phtimehhmm(currentmins: number): string {
+
+function phTimeHHMM(currentmins: number): string {
+    // aktuelle time in HH:MM string umwandeln
     let stds, hhmm: string
     let mins, stdn: number
     if (currentmins < 60) {
@@ -55,79 +64,86 @@ function phtimehhmm(currentmins: number): string {
 }
 
 
-// menue:
 function menue(): string {
-    // console.log("Current PH time: ", phtimesec())
+    // menue: Hauptprogramm Funktion
     let command: string
     while (true) {
-        console.log(
-            `Superparking ist geöffnet: ` + phtimehhmm(phtimesec()) + ` Uhr
-  Was möchtest du machen?  Bitte Kommando eingeben: \n    ` + allcommands);
-
-        let prompttxt = phtimehhmm(phtimesec()) + ": "
+        check80()
+        console.log(`\nSuperparking ist geöffnet: ` + phTimeHHMM(phTimeSec()) +
+            ` Uhr, SpeedTime: ` + speedtime +
+            `\n  Was möchtest du machen?  Bitte Kommando eingeben:\n    ` + allcommands);
+        let prompttxt = phTimeHHMM(phTimeSec()) + ", cars: " + phaus.cccount + ": "
         command = myprompt(prompttxt);
         if (allcommands.includes(command)) {
             return command;
         }
-        // console.log(" *** unbekannte Eingabe!")
     }
 }
 
-let noexit = true
-let carin, carout: car
-
-while (noexit) {
-    switch (menue()) {
-        case "parkin":
-            console.log("  auto parken")
-            carin = carParkInInfo(-1, "08:15", "02:00") // falsche id=-1 zwingt zur neueingabe
-            parkeAuto(carin)
-            break;
-        case "apark":
-            console.log("  parke einige auto automatisch!")
-            carin = carParkInInfo(getrandomcarid(), phtimehhmm(phtimesec()), "16:40")
-            parkeAuto(carin)
-            carin = carParkInInfo(getrandomcarid(), phtimehhmm(phtimesec()), "17:00")
-            parkeAuto(carin)
-            carin = carParkInInfo(getrandomcarid(), phtimehhmm(phtimesec()), "18:07")
-            parkeAuto(carin)
-            carin = carParkInInfo(getrandomcarid(), phtimehhmm(phtimesec()), "18:00")
-            parkeAuto(carin)
-            carin = carParkInInfo(getrandomcarid(), phtimehhmm(phtimesec()), "20:14")
-            parkeAuto(carin)
-            break;
-        case "parkout":
-            console.log("parkout:")
-            carout = carParkOutInfo(-1) // trifft nie zu -> innerhalb carParkOutInfo eingeben
-            deparkeAuto(carout)
-            break;
-        case "pstat":
-            console.log("pstat:")
-            parkhausStatus()
-            break;
-        case "money":
-            console.log("money:")
-            moneymoney()
-            break;
-        case "exit":
-            console.log("exit:")
-            closeParkHaus(phtimehhmm(phtimesec()))
-            noexit = false
-            break;
-        case "exit22":
-            console.log("exit22:")
-            closeParkHaus("22:00")
-            noexit = false
-            break;
-        case "ifexit":
-            ifexitnow()
-            break;
-        default: // wir machen nix!
-            break;
+function main() {
+    while (noexit) {
+        switch (menue()) {
+            case "speed":
+                let eingabe = myprompt("  new speedtime factor [" + speedtime + "]:")
+                if (eingabe != "") {
+                    let sp = Number(eingabe)
+                    if (0 < sp && sp <= 33) {
+                        speedtime = sp
+                    }
+                }
+                break
+            case "pein":
+                console.log("  - pein: auto parken")
+                carin = carParkInInfo(-1, "08:15", "02:00") // falsche id=-1 zwingt zur neueingabe
+                parkCar(carin)
+                break;
+            case "apark":
+                console.log("  - apark: 5 autos automatisch parken!")
+                carin = carParkInInfo(getRandomCarId(), phTimeHHMM(phTimeSec()), "16:40")
+                parkCar(carin)
+                carin = carParkInInfo(getRandomCarId(), phTimeHHMM(phTimeSec()), "17:00")
+                parkCar(carin)
+                carin = carParkInInfo(getRandomCarId(), phTimeHHMM(phTimeSec()), "18:07")
+                parkCar(carin)
+                carin = carParkInInfo(getRandomCarId(), phTimeHHMM(phTimeSec()), "18:00")
+                parkCar(carin)
+                carin = carParkInInfo(getRandomCarId(), phTimeHHMM(phTimeSec()), "20:14")
+                parkCar(carin)
+                break;
+            case "paus":
+                console.log("  - paus:")
+                carout = carParkOutInfo(-1) // trifft nie zu -> innerhalb carParkOutInfo eingeben
+                deparkCar(carout)
+                break;
+            case "pstat":
+                console.log("  - pstat:")
+                parkHouseStatus()
+                break;
+            case "money":
+                console.log("  - money:")
+                moneyMoney()
+                break;
+            case "exit":
+                console.log("  - exit:")
+                closeParkHouse(phTimeHHMM(phTimeSec()))
+                noexit = false
+                break;
+            case "exit22":
+                console.log("  - exit22:")
+                closeParkHouse("22:00")
+                noexit = false
+                break;
+            case "ifexit":
+                console.log("  - ifexit:")
+                ifExitNow()
+                break;
+            default: // wir machen nix!
+                break;
+        }
     }
 }
 
-function getrandomcarid() {
+function getRandomCarId() {
     return Math.floor(1000 + Math.random() * 9000)
 }
 
@@ -154,34 +170,20 @@ function carParkInInfo(idin: number, stime: string, dtime: string): car {
                 continue
             }
             // starttime ist jetzt aktuelle uhrzeit
-            carin.stime = phtimehhmm(phtimesec())
+            carin.stime = phTimeHHMM(phTimeSec())
             console.log(carin)
-            // if (/^\d{2}:\d{2}$/.test(carin.stime) && (
-            //     /^0[89]:[0-5][0-9]$/.test(carin.stime) ||
-            //     /^1[0-9]:[0-5][0-9]$/.test(carin.stime) ||
-            //     /^2[01]:[0-5][0-9]$/.test(carin.stime))) { // start time correct
-            //     // console.log(carin)
-            //     // von 8-22 Uhr -> max 14 std
-            //     // let dhour = Number(myprompt("  geplante Parkdauer(Std:1-14) :"))
-            //     // if (!(dhour < 1 || dhour > 14)) {
-            //     // } else {
-            //     //     console.log("  ERROR: falsche Parkdauer!")
-
-            // } else {
-            //     console.log("  ERROR: falsche Startzeit")
-            // }
             return carin
         } else if (carin.id <= 0) {
             break
         }
     }
     return carin
-    // fehlerhafte werte, es wird ein NULL id car geschickt; wird also nicht geparkt
-    // return { id: -1, stime: "00:00", dtime: "00:00" }
 }
-function parkeAuto(carin: car) {
+
+function parkCar(carin: car) {
+    check80()
     if (carin.id != -1) {
-        if (phaus.cccount <= phaus.maxccount) {
+        if (phaus.cccount < phaus.maxccount) {
             if (!phaus.phclist.find(car => car.id == carin.id)) {
                 phaus.phclist.push(carin)
                 phaus.cccount++
@@ -189,10 +191,28 @@ function parkeAuto(carin: car) {
             } else {
                 console.log("  Error: CarID schon vorhanden: ", carin.id)
             }
+        } else {
+            console.log("  Error: Parkhaus ist voll! Auto kann nicht geparkt werden!")
         }
     }
-
 }
+
+function check80() {
+    // checken auf Füllstand: hier >80%
+    if ((phaus.cccount / phaus.maxccount) > fullcheck) {
+        // Füllstand für automatisches ausparken erreicht
+        // aber nur ausparken von cars mit > 4Std parkzeit
+        let maxcarsaout = (phaus.maxccount * maxCarOut)
+        for (let car of phaus.phclist) {
+            let ifExitNowtime = phTimeHHMM(phTimeSec())
+            let [ticket, pmin, pstd] = calcTicket(car, ifExitNowtime)
+            if (pstd! >= autoTimeOut) {
+                deparkCarAutom(car)
+            }
+        }
+    }
+}
+
 function carParkOutInfo(carid: number): car {
     let ppnr: number = 0
     let car = { id: -1, stime: "00:00", dtime: "00:00" }
@@ -215,16 +235,22 @@ function carParkOutInfo(carid: number): car {
     }
     return car
 }
-function deparkeAuto(carin: car) {
+function deparkCarAutom(car: car): void {
+    console.log("  automatisches ausparken von:", car)
+    deparkCar(car)
+}
+
+function deparkCar(carin: car) {
     // suche carid, berechne parkkosten, platz wieder freigeben
     if (carin.id > 0) {
-        console.log("  parke aus:", carin)
+        // console.log("  parke aus:", carin)
         let index = phaus.phclist.findIndex(car => car.id == carin.id)
         if (index >= 0) {
             phaus.phclist.splice(index, 1)
+            phaus.cccount--
             // berechne Ticket und Gesamteinnahme+Ticket
-            let exittime = phtimehhmm(phtimesec()) // aktuelle Uhrzeit
-            let [ticket, pmin, pstd] = calcticket(carin, exittime)
+            let exittime = phTimeHHMM(phTimeSec()) // aktuelle Uhrzeit
+            let [ticket, pmin, pstd] = calcTicket(carin, exittime)
             console.log("carId:", carin.id, "Dauer 'Min/Std':", pmin + "/" + pstd, "Ticket(€):", ticket!.toFixed(2), "€")
             gesamteinnahmen = gesamteinnahmen + ticket!
         } else {
@@ -232,53 +258,57 @@ function deparkeAuto(carin: car) {
         }
     }
 }
-function parkhausStatus() {
+
+function parkHouseStatus() {
     console.log("Currend PH status: parked cars")
     let pline = "|"
+    let maxCarsIdsPerLine = 7
+    let anzIds = 0
     for (let c of phaus.phclist) {
         pline = pline + " " + c.id + " |"
+        anzIds++
+        if(anzIds == maxCarsIdsPerLine) {
+            pline = pline + "\n|"
+        }
         console.log(c)
     }
     console.log(pline)
-    moneymoney()
+    moneyMoney()
 }
 
-function moneymoney() {
+function moneyMoney() {
     console.log("  Aktuelle Einnahmen:", gesamteinnahmen.toFixed(2))
 }
 
-function closeParkHaus(closetime: string) {
+function closeParkHouse(closetime: string) {
     console.log("Parkhaus schließt!")
     console.log("  Parkdauer-Berechnung für alle noch geparkten cars!")
     let einnahmen = 0
     for (let c of phaus.phclist) {
-        let [ticket, pmin, pstd] = calcticket(c, closetime)
+        let [ticket, pmin, pstd] = calcTicket(c, closetime)
         einnahmen = einnahmen + ticket!
         console.log("carId:", c.id, "ParkDauer pro Std:", pstd, "Ticket(€):", ticket!.toFixed(2), "€")
     }
     gesamteinnahmen = gesamteinnahmen + einnahmen
     console.log("  Heute sind die Gesamteinnahmen:", gesamteinnahmen.toFixed(2), "€, weiter so!")
-
 }
 
-function ifexitnow() {
-    let ifexitnowtime = phtimehhmm(phtimesec())
+function ifExitNow() {
+    let ifExitNowtime = phTimeHHMM(phTimeSec())
     let exitnoweinnahmen = 0
     console.log("  WWW - Was-Wäre-Wenn Parkhaus jetzt schließen würde!")
     console.log("    Parkdauer/Ticket-Berechnung für alle noch geparkten cars!")
     let einnahmen = 0
     for (let c of phaus.phclist) {
-        let [ticket, pmin, pstd] = calcticket(c, ifexitnowtime)
+        let [ticket, pmin, pstd] = calcTicket(c, ifExitNowtime)
         einnahmen = einnahmen + ticket!
         console.log("carId:", c.id, "ParkDauer pro Std:", pstd, "Ticket(€):", ticket!.toFixed(2), "€")
     }
-
     exitnoweinnahmen = exitnoweinnahmen + einnahmen
     console.log("    Gesamteinnahmen z.Zt.:", gesamteinnahmen.toFixed(2), "+ ExitNowEinnahmen wären:", exitnoweinnahmen.toFixed(2))
-
 }
 
-function calcticket(c: car, untiltime: string): number[] {
+function calcTicket(c: car, untiltime: string): number[] {
     // für ein car: aktuelle Kosten zur übergebenen Uhrzeit berechnen
     let sstd, smin, dstd, dmin, rstd, rmin, pstd, pmin, sum, pmax: number
     let ctime = untiltime
@@ -303,3 +333,6 @@ function calcticket(c: car, untiltime: string): number[] {
     }
     return [sum!, pmin, pstd]
 }
+
+// run main program function 
+main()
