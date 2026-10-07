@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#132b27">
+  <meta name="description" content="Superparking Parkhaus-Simulation">
+  <title>Superparking | Parkhaus-Simulation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="Superparking Startseite">
+      <span class="brand-mark" aria-hidden="true">P</span>
+      <span>SUPER<span class="brand-light">PARKING</span></span>
+    </a>
+    <div class="live-state"><span class="live-dot"></span><span id="open-state">BETRIEB</span></div>
+  </header>
+
+  <main class="layout">
+    <section class="intro">
+      <div>
+        <p class="eyebrow">PARKHAUSVERWALTUNG <span>·</span> SEIT 08:00 UHR</p>
+        <div class="title-row">
+          <h1><span class="greeting">Guten Tag,<br></span><span>Superparking.</span></h1>
+          <button id="open-button" class="button button-open" type="button" hidden>Öffnen</button>
+        </div>
+      </div>
+      <div class="clock-block">
+        <div class="clock-readout">
+          <span class="eyebrow">SIMULATIONSZEIT</span>
+          <time id="clock">08:00</time>
+        </div>
+        <label class="speed-control" for="speed">ZEITFAKTOR <span id="speed-value">7×</span>
+          <input id="speed" type="range" min="1" max="33" value="7" aria-label="Zeitfaktor">
+        </label>
+      </div>
+    </section>
+
+    <section class="metrics" aria-label="Parkhausübersicht">
+      <article class="metric metric-occupancy">
+        <div class="metric-heading"><span>BELEGUNG</span><span class="metric-icon" aria-hidden="true">▦</span></div>
+        <div class="metric-value"><strong id="occupancy">0</strong><span>/ 25</span></div>
+        <div class="occupancy-track"><span id="occupancy-bar"></span></div>
+        <p id="occupancy-copy">Alle Plätze frei</p>
+      </article>
+      <article class="metric metric-revenue">
+        <div class="metric-heading"><span>TAGESEINNAHMEN</span><span class="metric-icon" aria-hidden="true">€</span></div>
+        <div class="metric-value"><strong id="revenue">0,00</strong><span>€</span></div>
+        <p>Abgerechnete Tickets</p>
+      </article>
+      <article class="metric metric-time">
+        <div class="metric-heading"><span>GEÖFFNET SEIT</span><span class="metric-icon" aria-hidden="true">◷</span></div>
+        <div class="metric-value"><strong>08:00</strong></div>
+        <p id="elapsed-copy">0 Min. Betriebszeit</p>
+      </article>
+    </section>
+
+    <section class="work-area">
+      <div class="parking-section">
+        <div class="section-heading">
+          <div><p class="eyebrow">LIVE-ÜBERSICHT</p><h2>Parkdeck</h2></div>
+          <span class="deck-label"><span class="live-dot"></span> DECK 01</span>
+        </div>
+        <div class="parking-floor">
+          <div class="floor-label"><span>EINFAHRT</span><span>01 — 25</span></div>
+          <div id="parking-slots" class="parking-slots" aria-label="Parkplätze"></div>
+          <div class="floor-exit"><span>←</span> AUSFAHRT</div>
+        </div>
+        <div class="legend"><span><i class="legend-free"></i> Frei</span><span><i class="legend-used"></i> Belegt</span></div>
+      </div>
+
+      <aside class="controls-section">
+        <div class="section-heading">
+          <div><p class="eyebrow">AKTIONEN</p><h2>Verwaltung</h2></div>
+        </div>
+        <form id="park-form" class="action-form">
+          <label for="car-id">Fahrzeug einparken</label>
+          <div class="input-row"><input id="car-id" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" placeholder="Kennung · 4 Ziffern" required><button class="button button-primary" type="submit" aria-label="Fahrzeug einparken">+</button></div>
+        </form>
+        <form id="exit-form" class="action-form">
+          <label for="car-select">Fahrzeug ausparken</label>
+          <div class="input-row"><select id="car-select" required><option value="">Fahrzeug wählen</option></select><button class="button button-secondary" type="submit" aria-label="Ausgewähltes Fahrzeug ausparken">↗</button></div>
+        </form>
+        <div class="action-divider"></div>
+        <button id="demo-button" class="text-action" type="button"><span aria-hidden="true">＋</span> 5 Demo-Fahrzeuge einfahren lassen</button>
+        <button id="preview-button" class="text-action" type="button"><span aria-hidden="true">◉</span> Einnahmen bei Schließung ansehen</button>
+        <button id="close-button" class="button button-close" type="button">Parkhaus schließen <span aria-hidden="true">→</span></button>
+        <p id="notice" class="notice" role="status" aria-live="polite"></p>
+      </aside>
+    </section>
+
+    <section class="bottom-area">
+      <div class="vehicle-section">
+        <div class="section-heading compact-heading"><div><p class="eyebrow">AKTUELL IM PARKHAUS</p><h2>Geparkte Fahrzeuge <span id="vehicle-count" class="count-badge">0</span></h2></div></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>KENNUNG</th><th>EINGEFAHREN</th><th>PARKDAUER</th><th>AKTUELLER TARIF</th><th></th></tr></thead>
+            <tbody id="vehicle-list"><tr class="empty-row"><td colspan="5">Noch keine Fahrzeuge im Parkhaus.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <aside class="activity-section">
+        <div class="section-heading compact-heading"><div><p class="eyebrow">LETZTE MELDUNGEN</p><h2>Aktivität</h2></div></div>
+        <ol id="activity-list" class="activity-list"><li class="activity-empty">Parkhaus geöffnet · 08:00</li></ol>
+      </aside>
+    </section>
+    <footer><span>SUPERPARKING <span class="footer-separator">/</span> SIMULATION</span><span>25 PLÄTZE <span class="footer-separator">·</span> TARIF NACH PARKDAUER</span></footer>
+  </main>
+
+  <dialog id="summary-dialog" class="summary-dialog">
+    <form method="dialog"><button class="dialog-close" aria-label="Schließen">×</button></form>
+    <p class="eyebrow" id="dialog-eyebrow">TAGESABSCHLUSS</p>
+    <h2 id="dialog-title">Parkhaus schließen</h2>
+    <p id="dialog-copy"></p>
+    <div class="summary-total"><span>GESAMTEINNAHMEN</span><strong id="dialog-total">0,00 €</strong></div>
+    <button id="confirm-close" class="button button-close" type="button">Endgültig schließen <span aria-hidden="true">→</span></button>
+  </dialog>
+</body>
+</html>
