@@ -216,7 +216,9 @@ function exitCar(id, announce = true) {
 function checkAutomaticExit() {
   if (state.cars.length / CAPACITY <= AUTO_CLEAR_THRESHOLD) return;
   const now = elapsedMinutes();
+  const max10percent = Math.floor(CAPACITY / 10) + 1
   const eligibleCars = state.cars.filter((car) => now - car.arrivedAt >= AUTO_CLEAR_AFTER_MINUTES);
+  const eligibleCars10 = eligibleCars.slice(0,max10percent)
   for (const car of eligibleCars) {
     if (!state.cars.some((parked) => parked.id === car.id)) continue;
     exitCar(car.id);
