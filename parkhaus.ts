@@ -199,6 +199,8 @@ function parkCar(carin: car) {
 
 function check80() {
     // checken auf Füllstand: hier >80%
+    let max10percent = Math.floor(phaus.maxccount / 10) + 1
+    let carout = 0
     if ((phaus.cccount / phaus.maxccount) > fullcheck) {
         // Füllstand für automatisches ausparken erreicht
         // aber nur ausparken von cars mit > 4Std parkzeit
@@ -207,10 +209,13 @@ function check80() {
             let ifExitNowtime = phTimeHHMM(phTimeSec())
             let [ticket, pmin, pstd] = calcTicket(car, ifExitNowtime)
             if (pstd! >= autoTimeOut) {
+                if (carout < max10percent) { }
                 deparkCarAutom(car)
+                carout++
             }
         }
     }
+}
 }
 
 function carParkOutInfo(carid: number): car {
@@ -267,7 +272,7 @@ function parkHouseStatus() {
     for (let c of phaus.phclist) {
         pline = pline + " " + c.id + " |"
         anzIds++
-        if(anzIds == maxCarsIdsPerLine) {
+        if (anzIds == maxCarsIdsPerLine) {
             pline = pline + "\n|"
         }
         console.log(c)
